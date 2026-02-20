@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Abschluss-Rechner – Oberschule Niedersachsen</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #f0f4ff;
+      --card:    #ffffff;
+      --pri:     #3b5bdb;
+      --pri-l:   #748ffc;
+      --red:     #f03e3e;
+      --green:   #2f9e44;
+      --yellow:  #e67700;
+      --text:    #1a1a2e;
+      --muted:   #6c757d;
+      --border:  #dee2f0;
+      --radius:  14px;
+      --shadow:  0 4px 24px rgba(59,91,219,.10);
+    }
+
+    body {
+      font-family: 'Nunito Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 60px;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--pri) 0%, #5c7cfa 100%);
+      color: #fff;
+      text-align: center;
+      padding: 32px 20px 24px;
+      box-shadow: 0 4px 20px rgba(59,91,219,.35);
+    }
+    header h1 { font-family:'Nunito',sans-serif; font-size:clamp(1.6rem,5vw,2.4rem); font-weight:900; }
+    header p  { margin-top:6px; font-size:.95rem; opacity:.88; }
+
+    .container { max-width:820px; margin:0 auto; padding:0 14px; }
+
+    .info-box {
+      background:#e7edff; border-left:5px solid var(--pri);
+      border-radius:var(--radius); padding:14px 18px;
+      margin:24px 0 18px; font-size:.92rem; line-height:1.6;
+    }
+    .info-box strong { color:var(--pri); }
+
+    .card {
+      background:var(--card); border-radius:var(--radius);
+      box-shadow:var(--shadow); padding:20px; margin-bottom:16px;
+    }
+    .card-title {
+      font-family:'Nunito',sans-serif; font-weight:800; font-size:1.05rem;
+      margin-bottom:14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    }
+
+    /* ── Fach-Auswahl ── */
+    .fach-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(185px,1fr));
+      gap:7px;
+      margin-bottom:10px;
+    }
+    .fach-check-label {
+      display:flex; align-items:center; gap:7px;
+      padding:7px 10px; border-radius:8px; border:2px solid var(--border);
+      cursor:pointer; font-size:.87rem; font-weight:600;
+      transition:border-color .15s, background .15s;
+      user-select:none; line-height:1.3;
+    }
+    .fach-check-label:hover { background:#f0f4ff; border-color:var(--pri-l); }
+    .fach-check-label input[type=checkbox] { width:16px; height:16px; accent-color:var(--pri); flex-shrink:0; }
+    .fach-check-label.selected { background:#e7edff; border-color:var(--pri); }
+
+    .section-label {
+      font-size:.8rem; font-weight:700; padding:4px 0 7px;
+    }
+    .section-label.diff   { color:var(--pri); }
+    .section-label.undiff { color:var(--green); }
+    .section-label.eigen  { color:var(--muted); }
+
+    .add-fach-row {
+      display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; align-items:center;
+    }
+    .add-fach-row input[type=text] {
+      flex:1; min-width:140px; padding:8px 12px;
+      border:2px solid var(--border); border-radius:8px;
+      font-family:inherit; font-size:.9rem;
+    }
+    .add-fach-row input[type=text]:focus { outline:none; border-color:var(--pri); }
+    .add-fach-row select {
+      padding:8px 10px; border:2px solid var(--border); border-radius:8px;
+      font-family:inherit; font-size:.88rem;
+    }
+    .btn-small {
+      padding:8px 16px; background:var(--pri); color:#fff;
+      border:none; border-radius:8px; font-family:inherit;
+      font-size:.88rem; font-weight:700; cursor:pointer; white-space:nowrap;
+    }
+    .btn-small:hover { background:#2f4bc2; }
+
+    /* ── Noten-Tabelle ── */
+    .noten-table { width:100%; border-collapse:collapse; }
+    .noten-table th {
+      text-align:left; font-size:.75rem; color:var(--muted);
+      font-weight:700; padding:4px 6px 8px; border-bottom:2px solid var(--border);
+    }
+    .noten-table td { padding:6px 6px; vertical-align:top; }
+    .noten-table tr:not(:last-child) td { border-bottom:1px dashed var(--border); }
+    .fach-label-cell { font-weight:600; font-size:.9rem; }
+
+    .kurs-toggle { display:flex; border:2px solid var(--border); border-radius:7px; overflow:hidden; width:80px; }
+    .kurs-toggle input { display:none; }
+    .kurs-toggle label {
+      flex:1; text-align:center; padding:5px 2px;
+      font-size:.78rem; font-weight:700; cursor:pointer;
+      transition:background .15s, color .15s; user-select:none;
+    }
+    .kurs-toggle input:checked + label { background:var(--pri); color:#fff; }
+    .kurs-toggle label:hover { background:#e7edff; }
+
+    .note-input {
+      width:68px; padding:6px 6px;
+      border:2px solid var(--border); border-radius:7px;
+      font-family:inherit; font-size:.95rem; text-align:center;
+    }
+    .note-input:focus { outline:none; border-color:var(--pri); }
+    .note-input.invalid { border-color:var(--red); }
+
+    .del-btn {
+      background:none; border:none; color:#ccc; font-size:1rem;
+      cursor:pointer; padding:4px 6px; border-radius:6px;
+      transition:color .15s, background .15s;
+    }
+    .del-btn:hover { color:var(--red); background:#fff0f0; }
+
+    /* ── Jahresendnote-Rechner ── */
+    .rechner-toggle {
+      display:inline-flex; align-items:center; gap:5px;
+      font-size:.78rem; color:var(--pri); font-weight:700;
+      cursor:pointer; margin-top:3px; user-select:none;
+      background:#e7edff; border-radius:5px; padding:2px 8px;
+    }
+    .rechner-toggle:hover { background:#bac8ff; }
+
+    .rechner-box {
+      display:none; margin-top:8px; padding:11px 13px;
+      background:#f8f9ff; border-radius:9px;
+      border:1.5px solid #bac8ff; font-size:.85rem;
+    }
+    .rechner-box.open { display:block; }
+    .rechner-row {
+      display:flex; align-items:center; gap:8px;
+      margin-bottom:7px; flex-wrap:wrap;
+    }
+    .rechner-row label { min-width:170px; color:var(--muted); font-size:.82rem; font-weight:600; }
+    .rechner-row input {
+      width:72px; padding:5px 7px; border:2px solid var(--border);
+      border-radius:7px; font-size:.9rem; text-align:center;
+    }
+    .rechner-row input:focus { outline:none; border-color:var(--pri); }
+    .rechner-ergebnis {
+      margin-top:7px; padding:7px 11px; border-radius:7px;
+      background:#e7edff; font-weight:700; color:var(--pri); font-size:.9rem;
+    }
+    .rechner-formel { color:var(--muted); font-size:.75rem; margin-top:3px; font-style:italic; }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      display:block; width:100%; padding:14px;
+      background:linear-gradient(135deg, var(--pri), #5c7cfa);
+      color:#fff; border:none; border-radius:var(--radius);
+      font-family:'Nunito',sans-serif; font-size:1.08rem; font-weight:800;
+      cursor:pointer; box-shadow:0 4px 18px rgba(59,91,219,.35);
+      transition:transform .15s, box-shadow .15s;
+    }
+    .btn-primary:hover { transform:translateY(-2px); }
+
+    /* ── Ergebnis ── */
+    #ergebnis { display:none; margin-top:18px; }
+    .result-header {
+      text-align:center; padding:22px 18px 16px;
+      border-radius:var(--radius); margin-bottom:14px;
+      animation:fadeUp .4s ease;
+    }
+    .result-header h2 { font-family:'Nunito',sans-serif; font-size:1.4rem; font-weight:900; }
+    .result-header p  { margin-top:6px; font-size:.92rem; }
+    .result-green  { background:#ebfbee; border:2px solid #b2f2bb; }
+    .result-yellow { background:#fff9db; border:2px solid #ffec99; }
+    .result-red    { background:#fff0f0; border:2px solid #ffc9c9; }
+
+    .detail-list { list-style:none; }
+    .detail-list li {
+      padding:9px 12px; border-radius:8px; margin-bottom:6px;
+      font-size:.88rem; display:flex; gap:8px; align-items:flex-start; line-height:1.4;
+    }
+    .detail-list .ok   { background:#ebfbee; }
+    .detail-list .fail { background:#fff0f0; }
+    .icon { flex-shrink:0; }
+
+    .tipp-box {
+      background:#e7edff; border-radius:var(--radius); padding:14px 16px; margin-top:12px;
+    }
+    .tipp-box h3 { font-family:'Nunito',sans-serif; font-weight:800; margin-bottom:8px; color:var(--pri); }
+    .tipp-box ul { list-style:none; }
+    .tipp-box ul li { padding:5px 0; font-size:.88rem; border-bottom:1px dashed #bac8ff; }
+    .tipp-box ul li:last-child { border:none; }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(12px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    footer { text-align:center; margin-top:32px; font-size:.76rem; color:var(--muted); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🎓 Abschluss-Rechner</h1>
+  <p>Oberschule Niedersachsen &nbsp;·&nbsp; Klasse 10 &nbsp;·&nbsp; Jahrgangsbezogen</p>
+</header>
+
+<div class="container">
+
+  <div class="info-box">
+    <strong>So geht's:</strong>
+    <strong>Schritt 1</strong> – Wähle deine Fächer aus (oder füge eigene hinzu).
+    <strong>Schritt 2</strong> – Trag deine Jahresendnoten ein. Du kannst die Note auch berechnen lassen, falls du sie noch nicht kennst.
+    Der Rechner sagt dir dann, welchen Abschluss du gerade hättest.
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SCHRITT 1 – FÄCHER WÄHLEN
+  ══════════════════════════════════════ -->
+  <div class="card" id="step1">
+    <div class="card-title">① Wähle deine Fächer aus</div>
+
+    <p style="font-size:.84rem;color:var(--muted);margin-bottom:14px;">
+      Klicke alle Fächer an, die du in diesem Schuljahr hast.
+      Fächer mit <span style="color:var(--red);font-weight:700;">★</span> sind schriftliche Prüfungsfächer.
+    </p>
+
+    <div class="section-label diff">📚 Differenzierte Fächer (E-Kurs oder G-Kurs)</div>
+    <div class="fach-grid" id="grid-diff"></div>
+
+    <div class="section-label undiff" style="margin-top:14px;">🎨 Weitere Fächer (ohne Kurseinteilung)</div>
+    <div class="fach-grid" id="grid-undiff"></div>
+
+    <div class="section-label eigen" style="margin-top:14px;">➕ Eigenes Fach hinzufügen</div>
+    <div class="add-fach-row">
+      <input type="text" id="custom-name" placeholder="z.B. Spanisch, Informatik …" maxlength="40" />
+      <select id="custom-typ">
+        <option value="diff">Differenziert (E/G)</option>
+        <option value="undiff">Ohne Kurs</option>
+      </select>
+      <button class="btn-small" onclick="customFachHinzufuegen()">+ Hinzufügen</button>
+    </div>
+
+    <div style="margin-top:18px; text-align:right;">
+      <button class="btn-small" onclick="zeigeNotenEingabe()" style="padding:11px 24px;font-size:.95rem;background:var(--green);">
+        Weiter zu Schritt 2 →
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SCHRITT 2 – NOTEN EINGEBEN
+  ══════════════════════════════════════ -->
+  <div class="card" id="step2" style="display:none;">
+    <div class="card-title">② Trag deine Jahresendnoten ein</div>
+
+    <p style="font-size:.84rem;color:var(--muted);margin-bottom:14px;">
+      Gib deine <strong>Jahresendnote</strong> ein (1 = sehr gut, 6 = ungenügend).<br>
+      Noch keine Prüfung gehabt? Klicke auf <span style="background:#e7edff;color:var(--pri);font-weight:700;padding:1px 6px;border-radius:4px;font-size:.78rem;">🧮 berechnen</span> um die Note aus Vornote + Prüfung zu berechnen.
+    </p>
+
+    <div id="noten-diff-wrap"></div>
+    <div id="noten-undiff-wrap" style="margin-top:16px;"></div>
+
+    <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn-small" onclick="zurueck()" style="background:var(--muted);">← Zurück</button>
+      <button class="btn-primary" style="flex:1;" onclick="berechnen()">🔍 Meinen Abschluss berechnen!</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       ERGEBNIS
+  ══════════════════════════════════════ -->
+  <div id="ergebnis">
+    <div id="result-header" class="result-header">
+      <h2 id="result-titel"></h2>
+      <p id="result-sub"></p>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 Details zur Bewertung</div>
+      <ul class="detail-list" id="detail-list"></ul>
+    </div>
+    <div class="tipp-box" id="tipp-box" style="display:none;">
+      <h3>💡 Das brauchst du noch für einen besseren Abschluss</h3>
+      <ul id="tipp-list"></ul>
+    </div>
+    <div style="margin-top:14px;">
+      <button class="btn-small" onclick="neustarten()" style="width:100%;padding:12px;font-size:.95rem;">
+        ↺ Neu berechnen
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Abschluss-Rechner · Oberschule Niedersachsen · Kein Ersatz für offizielle Beratung durch deine Schule.
+</footer>
+
+<script>
+/* ════════════════════════════════════════════════════════
+   FÄCHER-DATENBANK
+   typ      : 'diff' = E/G-Kurs | 'undiff' = kein Kurs
+   pruef    : schriftliches Pflicht-Prüfungsfach (Kl.10)
+   kern     : Kernfach (Deutsch/Mathe/Englisch) – Ausgleichsregel
+   stunden  : Wochenstunden (für Ausgleichs-Stundenregel)
+   vorgew   : standardmäßig ausgewählt
+════════════════════════════════════════════════════════ */
+const DB = [
+  // ── Differenziert ──
+  { id:'deutsch',    name:'Deutsch',          typ:'diff',   stunden:4, pruef:true,  kern:true,  vorgew:true  },
+  { id:'mathe',      name:'Mathematik',       typ:'diff',   stunden:4, pruef:true,  kern:true,  vorgew:true  },
+  { id:'englisch',   name:'Englisch',         typ:'diff',   stunden:3, pruef:true,  kern:true,  vorgew:true  },
+  { id:'physik',     name:'Physik',           typ:'diff',   stunden:2, pruef:false, kern:false, vorgew:true  },
+  { id:'chemie',     name:'Chemie',           typ:'diff',   stunden:2, pruef:false, kern:false, vorgew:false },
+  // ── Undifferenziert ──
+  { id:'biologie',   name:'Biologie',         typ:'undiff', stunden:2, pruef:false, kern:false, vorgew:true  },
+  { id:'geschichte', name:'Geschichte',       typ:'undiff', stunden:2, pruef:false, kern:false, vorgew:true  },
+  { id:'erdkunde',   name:'Erdkunde',         typ:'undiff', stunden:2, pruef:false, kern:false, vorgew:true  },
+  { id:'politik',    name:'Politik',          typ:'undiff', stunden:2, pruef:false, kern:false, vorgew:true  },
+  { id:'wirtschaft', name:'Wirtschaft',       typ:'undiff', stunden:2, pruef:false, kern:false, vorgew:true  },
+  { id:'technik',    name:'Technik',          typ:'undiff', stunden:2, pruef:false, kern:false, vorgew:false },
+  { id:'sport',      name:'Sport',            typ:'undiff', stunden:2, pruef:false, kern:false, vorgew:true  },
+  { id:'musik',      name:'Musik',            typ:'undiff', stunden:2, pruef:false, kern:false, vorgew:true  },
+  { id:'kunst',      name:'Kunst',            typ:'undiff', stunden:2, pruef:false, kern:false, vorgew:false },
+  { id:'reli',       name:'Religion',         typ:'undiff', stunden:2, pruef:false, kern:false, vorgew:false },
+  { id:'wn',         name:'Werte & Normen',   typ:'undiff', stunden:2, pruef:false, kern:false, vorgew:false },
+  { id:'ds',         name:'Darst. Spiel',     typ:'undiff', stunden:2, pruef:false, kern:false, vorgew:false },
+  { id:'informatik', name:'Informatik',       typ:'undiff', stunden:2, pruef:false, kern:false, vorgew:false },
+];
+
+let gewaehlte = new Set();  // ausgewählte Fach-IDs
+let eigeneFaecher = [];
+let eigenId = 9000;
+
+/* ════════════════════════════════════════════════════════
+   SCHRITT 1 – Fach-Auswahl
+════════════════════════════════════════════════════════ */
+function buildFachAuswahl() {
+  const gDiff   = document.getElementById('grid-diff');
+  const gUndiff = document.getElementById('grid-undiff');
+
+  DB.forEach(f => {
+    if (f.vorgew) gewaehlte.add(f.id);
+    const lbl = machCheckLabel(f);
+    (f.typ === 'diff' ? gDiff : gUndiff).appendChild(lbl);
+  });
+}
+
+function machCheckLabel(f) {
+  const lbl = document.createElement('label');
+  lbl.className = 'fach-check-label' + (gewaehlte.has(f.id) ? ' selected' : '');
+  lbl.id = 'lbl-' + f.id;
+  lbl.innerHTML = `
+    <input type="checkbox" ${gewaehlte.has(f.id) ? 'checked' : ''}
+      onchange="toggleFach('${f.id}', this)">
+    ${f.name}${f.pruef ? ' <span style="color:var(--red);font-size:.7rem;">★</span>' : ''}
+  `;
+  return lbl;
+}
+
+function toggleFach(id, cb) {
+  const lbl = document.getElementById('lbl-' + id);
+  if (cb.checked) { gewaehlte.add(id);    lbl.classList.add('selected'); }
+  else            { gewaehlte.delete(id); lbl.classList.remove('selected'); }
+}
+
+function customFachHinzufuegen() {
+  const inp  = document.getElementById('custom-name');
+  const typ  = document.getElementById('custom-typ').value;
+  const name = inp.value.trim();
+  if (!name) { inp.focus(); return; }
+
+  const id = 'eigen_' + (eigenId++);
+  const f  = { id, name, typ, stunden:2, pruef:false, kern:false, vorgew:true };
+  eigeneFaecher.push(f);
+  gewaehlte.add(id);
+
+  const grid = document.getElementById(typ === 'diff' ? 'grid-diff' : 'grid-undiff');
+  grid.appendChild(machCheckLabel(f));
+  inp.value = '';
+}
+
+/* ════════════════════════════════════════════════════════
+   SCHRITT 2 – Noten-Eingabe
+════════════════════════════════════════════════════════ */
+function zeigeNotenEingabe() {
+  if (gewaehlte.size === 0) { alert('Wähle mindestens ein Fach aus!'); return; }
+
+  const alle = [...DB, ...eigeneFaecher].filter(f => gewaehlte.has(f.id));
+  const diff   = alle.filter(f => f.typ === 'diff');
+  const undiff = alle.filter(f => f.typ === 'undiff');
+
+  const dw = document.getElementById('noten-diff-wrap');
+  const uw = document.getElementById('noten-undiff-wrap');
+  dw.innerHTML = '';
+  uw.innerHTML = '';
+
+  if (diff.length > 0) {
+    dw.innerHTML = '<p class="section-label diff" style="margin-bottom:8px;">📚 Differenzierte Fächer</p>';
+    dw.appendChild(bauNotenTabelle(diff, true));
+  }
+  if (undiff.length > 0) {
+    uw.innerHTML = '<p class="section-label undiff" style="margin-bottom:8px;">🎨 Weitere Fächer</p>';
+    uw.appendChild(bauNotenTabelle(undiff, false));
+  }
+
+  document.getElementById('step1').style.display = 'none';
+  document.getElementById('step2').style.display = 'block';
+  window.scrollTo({ top: document.getElementById('step2').offsetTop - 20, behavior:'smooth' });
+}
+
+function bauNotenTabelle(faecher, hatKurs) {
+  const table = document.createElement('table');
+  table.className = 'noten-table';
+  table.innerHTML = `<thead><tr>
+    <th>Fach</th>
+    ${hatKurs ? '<th style="width:90px;">Kurs</th>' : ''}
+    <th style="width:90px;">Jahresendnote</th>
+    <th style="width:28px;"></th>
+  </tr></thead>`;
+
+  const tbody = document.createElement('tbody');
+  faecher.forEach(f => {
+    const tr = document.createElement('tr');
+    tr.id = 'tr-' + f.id;
+
+    // ── Fach-Zelle mit Rechner ──
+    const rechnerHTML = machRechnerHTML(f);
+    const fachTd = document.createElement('td');
+    fachTd.className = 'fach-label-cell';
+    fachTd.innerHTML = `
+      ${f.name}${f.pruef ? ' <span style="color:var(--red);font-size:.7rem;">★</span>' : ''}
+      <br>${rechnerHTML}
+    `;
+
+    // ── Kurs-Zelle ──
+    let kursTd = '';
+    if (hatKurs) {
+      kursTd = `<td>
+        <div class="kurs-toggle">
+          <input type="radio" name="kurs-${f.id}" id="kurs-${f.id}-e" value="E" checked>
+          <label for="kurs-${f.id}-e">E</label>
+          <input type="radio" name="kurs-${f.id}" id="kurs-${f.id}-g" value="G">
+          <label for="kurs-${f.id}-g">G</label>
+        </div>
+      </td>`;
+    }
+
+    tr.appendChild(fachTd);
+    if (hatKurs) tr.insertAdjacentHTML('beforeend', kursTd);
+    tr.insertAdjacentHTML('beforeend', `
+      <td><input type="number" class="note-input" id="note-${f.id}"
+        min="1" max="6" step="1" placeholder="1–6"
+        oninput="valNote(this)"></td>
+      <td><button class="del-btn" onclick="loescheFach('${f.id}')" title="Fach entfernen">✕</button></td>
+    `);
+
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  return table;
+}
+
+function machRechnerHTML(f) {
+  const rid = f.id;
+
+  if (f.pruef && f.id === 'englisch') {
+    // Englisch: Vornote⅔ + Prüfungsnote⅓, Prüfungsnote = Schriftl⅔ + Mündl⅓
+    return `
+      <span class="rechner-toggle" onclick="toggleR('${rid}')">🧮 berechnen</span>
+      <div class="rechner-box" id="rb-${rid}">
+        <div style="font-size:.76rem;color:var(--muted);margin-bottom:7px;">
+          <b>Englisch-Formel:</b><br>
+          Prüfungsnote = Schriftl. × ⅔ + Mündl. × ⅓<br>
+          Jahresendnote = Vornote × ⅔ + Prüfungsnote × ⅓
+        </div>
+        <div class="rechner-row">
+          <label>Vornote (z.B. 3,6):</label>
+          <input type="number" id="rv-${rid}" min="1" max="6" step="0.1" placeholder="3,6" oninput="calcNote('${rid}')">
+        </div>
+        <div class="rechner-row">
+          <label>Schriftl. Prüfung (1–6):</label>
+          <input type="number" id="rs-${rid}" min="1" max="6" step="1" placeholder="3" oninput="calcNote('${rid}')">
+        </div>
+        <div class="rechner-row">
+          <label>Mündl. Prüfung Englisch (1–6):</label>
+          <input type="number" id="rm-${rid}" min="1" max="6" step="1" placeholder="3" oninput="calcNote('${rid}')">
+        </div>
+        <div class="rechner-ergebnis" id="rr-${rid}">→ Jahresendnote: –</div>
+        <div class="rechner-formel" id="rf-${rid}"></div>
+        <button class="btn-small" style="margin-top:8px;font-size:.8rem;" onclick="uebernehme('${rid}')">✓ Note übernehmen</button>
+      </div>`;
+  }
+
+  if (f.pruef) {
+    // Deutsch / Mathe: Vornote⅔ + Schriftl⅓
+    return `
+      <span class="rechner-toggle" onclick="toggleR('${rid}')">🧮 berechnen</span>
+      <div class="rechner-box" id="rb-${rid}">
+        <div style="font-size:.76rem;color:var(--muted);margin-bottom:7px;">
+          <b>Formel:</b> Jahresendnote = Vornote × ⅔ + Schriftl. Prüfung × ⅓
+        </div>
+        <div class="rechner-row">
+          <label>Vornote (z.B. 3,6):</label>
+          <input type="number" id="rv-${rid}" min="1" max="6" step="0.1" placeholder="3,6" oninput="calcNote('${rid}')">
+        </div>
+        <div class="rechner-row">
+          <label>Schriftl. Prüfung (1–6):</label>
+          <input type="number" id="rs-${rid}" min="1" max="6" step="1" placeholder="3" oninput="calcNote('${rid}')">
+        </div>
+        <div class="rechner-ergebnis" id="rr-${rid}">→ Jahresendnote: –</div>
+        <div class="rechner-formel" id="rf-${rid}"></div>
+        <button class="btn-small" style="margin-top:8px;font-size:.8rem;" onclick="uebernehme('${rid}')">✓ Note übernehmen</button>
+      </div>`;
+  }
+
+  // Alle anderen: ggf. mündliches Wahlfach
+  return `
+    <span class="rechner-toggle" onclick="toggleR('${rid}')">🧮 berechnen</span>
+    <div class="rechner-box" id="rb-${rid}">
+      <div style="font-size:.76rem;color:var(--muted);margin-bottom:7px;">
+        <b>Nur wenn du mündlich geprüft wirst:</b><br>
+        Jahresendnote = Vornote × ⅔ + Mündl. Prüfung × ⅓<br>
+        Sonst einfach die Jahresnote direkt eingeben.
+      </div>
+      <div class="rechner-row">
+        <label>Vornote (z.B. 3,6):</label>
+        <input type="number" id="rv-${rid}" min="1" max="6" step="0.1" placeholder="3,6" oninput="calcNote('${rid}')">
+      </div>
+      <div class="rechner-row">
+        <label>Mündl. Prüfung (1–6):</label>
+        <input type="number" id="rm-${rid}" min="1" max="6" step="1" placeholder="3" oninput="calcNote('${rid}')">
+      </div>
+      <div class="rechner-ergebnis" id="rr-${rid}">→ Jahresendnote: –</div>
+      <div class="rechner-formel" id="rf-${rid}"></div>
+      <button class="btn-small" style="margin-top:8px;font-size:.8rem;" onclick="uebernehme('${rid}')">✓ Note übernehmen</button>
+    </div>`;
+}
+
+function toggleR(id) {
+  document.getElementById('rb-' + id)?.classList.toggle('open');
+}
+
+function calcNote(id) {
+  const vor   = parseFloat(document.getElementById('rv-' + id)?.value);
+  const schr  = parseFloat(document.getElementById('rs-' + id)?.value);
+  const muend = parseFloat(document.getElementById('rm-' + id)?.value);
+  const resEl = document.getElementById('rr-' + id);
+  const fEl   = document.getElementById('rf-' + id);
+
+  let end = null, formel = '';
+
+  if (id === 'englisch') {
+    if (!isNaN(vor) && !isNaN(schr) && !isNaN(muend)) {
+      const pruef = schr*(2/3) + muend*(1/3);
+      const roh   = vor*(2/3) + pruef*(1/3);
+      end = Math.round(roh);
+      formel = `Prüfungsnote: ${schr}×⅔ + ${muend}×⅓ = ${pruef.toFixed(2)} | Jahresendnote: ${vor}×⅔ + ${pruef.toFixed(2)}×⅓ = ${roh.toFixed(2)} ≈ ${end}`;
+    }
+  } else if (!isNaN(schr)) {
+    // Deutsch / Mathe
+    if (!isNaN(vor)) {
+      const roh = vor*(2/3) + schr*(1/3);
+      end = Math.round(roh);
+      formel = `${vor}×⅔ + ${schr}×⅓ = ${roh.toFixed(2)} ≈ ${end}`;
+    }
+  } else if (!isNaN(muend)) {
+    // Wahlfach mündlich
+    if (!isNaN(vor)) {
+      const roh = vor*(2/3) + muend*(1/3);
+      end = Math.round(roh);
+      formel = `${vor}×⅔ + ${muend}×⅓ = ${roh.toFixed(2)} ≈ ${end}`;
+    }
+  }
+
+  if (end !== null && end >= 1 && end <= 6) {
+    resEl.textContent = `→ Jahresendnote: ${end}`;
+    fEl.textContent   = formel;
+  } else {
+    resEl.textContent = '→ Jahresendnote: –';
+    fEl.textContent   = '';
+  }
+}
+
+function uebernehme(id) {
+  const text  = document.getElementById('rr-' + id)?.textContent || '';
+  const match = text.match(/(\d)$/);
+  if (!match) { alert('Fülle erst alle Felder im Rechner aus!'); return; }
+  const inp = document.getElementById('note-' + id);
+  if (inp) { inp.value = match[1]; inp.classList.remove('invalid'); }
+  document.getElementById('rb-' + id)?.classList.remove('open');
+}
+
+function valNote(inp) {
+  const v = parseInt(inp.value);
+  inp.classList.toggle('invalid', inp.value !== '' && (isNaN(v) || v < 1 || v > 6));
+}
+
+function loescheFach(id) {
+  document.getElementById('tr-' + id)?.remove();
+  gewaehlte.delete(id);
+}
+
+/* ════════════════════════════════════════════════════════
+   DATEN SAMMELN
+════════════════════════════════════════════════════════ */
+function holeFachDaten() {
+  return [...DB, ...eigeneFaecher]
+    .filter(f => gewaehlte.has(f.id))
+    .filter(f => document.getElementById('tr-' + f.id))          // nicht gelöscht
+    .map(f => {
+      const noteEl = document.getElementById('note-' + f.id);
+      const note   = noteEl ? parseInt(noteEl.value) : NaN;
+      if (isNaN(note) || note < 1 || note > 6) return null;
+      const kursEl = document.querySelector(`input[name="kurs-${f.id}"]:checked`);
+      return { ...f, note, kurs: f.typ === 'diff' ? (kursEl?.value || 'E') : null };
+    })
+    .filter(Boolean);
+}
+
+/* ════════════════════════════════════════════════════════
+   ABSCHLUSS-LOGIK
+════════════════════════════════════════════════════════ */
+function berechnen() {
+  const faecher = holeFachDaten();
+  if (faecher.length === 0) { alert('Bitte gib mindestens eine Note ein!'); return; }
+
+  // ── Prüfungsfächer-Sperregel ──
+  const pruefMangel = faecher.filter(f => f.pruef && f.note >= 5);
+  if (pruefMangel.length >= 2) {
+    zeigeErgebnis('kein', [{
+      ok: false,
+      text: `In ${pruefMangel.length} Prüfungsfächern (${pruefMangel.map(f=>f.name).join(', ')}) hast du eine 5 oder 6. Erlaubt ist höchstens einmal unter Note 4 in Prüfungsfächern – kein Abschluss möglich.`
+    }], []);
+    return;
+  }
+
+  const hs  = pruefeHS(faecher);
+  const rs  = pruefeRS(faecher);
+  const ers = pruefeERS(faecher);
+
+  const abschluss = ers.ok ? 'ERS' : rs.ok ? 'RS' : hs.ok ? 'HS' : 'kein';
+  const details   = abschluss === 'ERS' ? ers.details
+                  : abschluss === 'RS'  ? rs.details
+                  : hs.details;
+
+  zeigeErgebnis(abschluss, details, generieTipps(abschluss, faecher));
+}
+
+/* ── Hauptschulabschluss ── */
+function pruefeHS(faecher) {
+  const details = [];
+  const maengel = faecher.filter(f => f.note >= 5);
+
+  if (maengel.length === 0) {
+    details.push({ ok:true, text:'Alle Fächer mindestens Note 4 ✔' });
+    return { ok:true, details };
+  }
+  if (maengel.length === 1 && maengel[0].note === 5) {
+    faecher.forEach(f => details.push({ ok:f.note<=4, text:`${f.name}${f.kurs?` (${f.kurs}-Kurs)`:''}: Note ${f.note}` }));
+    details.push({ ok:true, text:'1 × Note 5 muss für den Hauptschulabschluss nicht ausgeglichen werden ✔' });
+    return { ok:true, details };
+  }
+
+  const ausgl = pruefeAusgleich(faecher, maengel, 'HS');
+  faecher.forEach(f => details.push({ ok:f.note<=4, text:`${f.name}${f.kurs?` (${f.kurs}-Kurs)`:''}: Note ${f.note}` }));
+  details.push({ ok:ausgl.ok, text:ausgl.text });
+  return { ok:ausgl.ok, details };
+}
+
+/* ── Realschulabschluss ── */
+function pruefeRS(faecher) {
+  const details = [];
+  let ok = true;
+
+  const maengel = faecher.filter(f => f.note >= 5);
+  if (maengel.length === 0) {
+    details.push({ ok:true, text:'Alle Fächer mindestens Note 4 ✔' });
+  } else if (maengel.length === 1 && maengel[0].note === 5) {
+    details.push({ ok:true, text:`1 × Note 5 (${maengel[0].name}) – muss nicht ausgeglichen werden ✔` });
+  } else {
+    const ausgl = pruefeAusgleich(faecher, maengel, 'RS');
+    if (!ausgl.ok) ok = false;
+    details.push({ ok:ausgl.ok, text:ausgl.text });
+  }
+
+  // Mind. 1 E-Kurs mit Note ≤ 4
+  const eOK = faecher.filter(f => f.kurs === 'E' && f.note <= 4);
+  if (eOK.length === 0) { ok = false; }
+  details.push({ ok:eOK.length > 0, text:`E-Kurs mit Note ≤ 4: ${eOK.length > 0 ? eOK.map(f=>f.name).join(', ') + ' ✔' : 'keiner vorhanden – mindestens 1 nötig!'}` });
+
+  return { ok, details };
+}
+
+/* ── Erweiterter Sekundarabschluss I ── */
+function pruefeERS(faecher) {
+  const details = [];
+  let ok = true;
+
+  // Alle Fächer: max. 1× unter Note 4
+  const maengel = faecher.filter(f => f.note >= 5);
+  if (maengel.length > 1) {
+    ok = false;
+    details.push({ ok:false, text:`${maengel.length} Fächer mit Note 5 oder schlechter – für den Erweiterten Abschluss ist höchstens 1× erlaubt.` });
+  } else if (maengel.length === 1) {
+    details.push({ ok:true, text:`1 × Note 5 (${maengel[0].name}) ist erlaubt ✔` });
+  } else {
+    details.push({ ok:true, text:'Alle Fächer mindestens Note 4 ✔' });
+  }
+
+  // Mind. 1 E-Kurs mit Note ≤ 2
+  const eGut = faecher.filter(f => f.kurs === 'E' && f.note <= 2);
+  if (eGut.length === 0) ok = false;
+  details.push({ ok:eGut.length > 0, text:`E-Kurs mit Note ≤ 2 (gut): ${eGut.length > 0 ? eGut.map(f=>f.name).join(', ') + ' ✔' : 'fehlt – mindestens 1 nötig!'}` });
+
+  // Mind. 2 E-Kurse mit Note ≤ 3
+  const eBefr = faecher.filter(f => f.kurs === 'E' && f.note <= 3);
+  if (eBefr.length < 2) ok = false;
+  details.push({ ok:eBefr.length >= 2, text:`E-Kurse mit Note ≤ 3: ${eBefr.length} vorhanden (mind. 2 nötig)${eBefr.length >= 2 ? ' ✔' : ' – noch ' + (2-eBefr.length) + ' fehlt!'}` });
+
+  // Gesamtdurchschnitt ≤ 3,0 (E-Kurs-Bonus: Note um 1 besser werten)
+  const noten = faecher.map(f => (f.kurs === 'E' && f.note > 1) ? f.note - 1 : f.note);
+  const schnitt = noten.reduce((a,b)=>a+b,0) / noten.length;
+  const sOK = schnitt <= 3.0;
+  if (!sOK) ok = false;
+  details.push({ ok:sOK, text:`Gesamtdurchschnitt (mit E-Kurs-Bonus): ${schnitt.toFixed(2)} – ${sOK ? '≤ 3,00 ✔' : '> 3,00 – zu hoch!'}` });
+
+  return { ok, details };
+}
+
+/* ── Ausgleich ── */
+function pruefeAusgleich(faecher, maengel, typ) {
+  const KERN = ['deutsch','mathe','englisch'];
+
+  function darf(mangel, ausgl) {
+    if (ausgl.note > 3) return false;
+    if (KERN.includes(mangel.id) && !KERN.includes(ausgl.id)) return false; // Kernfach nur mit Kernfach
+    if (ausgl.stunden < mangel.stunden - 1) return false; // Stundenregel
+    if (ausgl.id === mangel.id) return false;
+    return true;
+  }
+
+  const fuenfen = maengel.filter(f => f.note === 5);
+  const sechsen = maengel.filter(f => f.note === 6);
+  const guteF   = faecher.filter(f => f.note <= 3);
+
+  // 1 × Note 5: kein Ausgleich nötig
+  if (fuenfen.length === 1 && sechsen.length === 0) {
+    return { ok:true, text:'1 × Note 5 muss nicht ausgeglichen werden ✔' };
+  }
+
+  // 2 × Note 5: je 1 Ausgleichsfach mit Note ≤ 3
+  if (fuenfen.length === 2 && sechsen.length === 0) {
+    const count = fuenfen.filter(m => guteF.some(a => darf(m,a))).length;
+    if (count === 2) return { ok:true, text:'2 × Note 5 durch 2 Fächer mit Note ≤ 3 ausgeglichen ✔' };
+  }
+
+  // 3 × Note 5 (nur HS): 2 Ausgleichsfächer reichen
+  if (typ === 'HS' && fuenfen.length === 3 && sechsen.length === 0) {
+    const passende = guteF.filter(a => fuenfen.some(m => darf(m,a)));
+    if (passende.length >= 2) return { ok:true, text:'3 × Note 5 – 2 Ausgleichsfächer reichen (HS-Regel) ✔' };
+  }
+
+  // 1 × Note 6: 1 Fach mit Note ≤ 2 ODER 2 Fächer mit Note ≤ 3
+  if (sechsen.length === 1 && fuenfen.length === 0) {
+    const s = sechsen[0];
+    const zweiOK = guteF.filter(a => a.note <= 2 && darf(s,a)).length >= 1;
+    const dreiOK = guteF.filter(a => darf(s,a)).length >= 2;
+    if (zweiOK || dreiOK) return { ok:true, text:'Note 6 durch gute Note(n) ausgeglichen ✔' };
+  }
+
+  return { ok:false, text:'Zu viele schwache Noten – Ausgleich nicht möglich.' };
+}
+
+/* ════════════════════════════════════════════════════════
+   TIPPS
+════════════════════════════════════════════════════════ */
+function generieTipps(abschluss, faecher) {
+  const tipps = [];
+  const eKurse = faecher.filter(f => f.kurs === 'E');
+
+  if (abschluss !== 'ERS') {
+    const eGut  = eKurse.filter(f => f.note <= 2).length;
+    const eBefr = eKurse.filter(f => f.note <= 3).length;
+    tipps.push('📈 Für den Erweiterten Abschluss: mind. 1 E-Kurs ≤ Note 2, mind. 2 E-Kurse ≤ Note 3, Gesamtschnitt ≤ 3,0 (mit E-Kurs-Bonus).');
+    if (eGut  < 1) tipps.push('👉 Du brauchst noch mindestens 1 E-Kurs mit Note 2 oder besser.');
+    if (eBefr < 2) tipps.push(`👉 Du brauchst noch ${2 - eBefr} E-Kurs mit Note 3 oder besser.`);
+  }
+  if (abschluss === 'kein' || abschluss === 'HS') {
+    tipps.push('📈 Für den Realschulabschluss: alle Fächer mindestens Note 4 (1× Note 5 erlaubt) + mind. 1 E-Kurs mit Note ≤ 4.');
+  }
+  faecher.filter(f => f.note >= 5).forEach(f => {
+    tipps.push(`👉 ${f.name}: Note ${f.note} – versuche auf Note 4 oder besser zu kommen.`);
+  });
+  return tipps;
+}
+
+/* ════════════════════════════════════════════════════════
+   ERGEBNIS ANZEIGEN / NAVIGATION
+════════════════════════════════════════════════════════ */
+const ERGEBNIS_TEXTE = {
+  ERS:  { titel:'✅ Erweiterter Sekundarabschluss I', sub:'Sehr gut! Du kannst auf die gymnasiale Oberstufe wechseln.', farbe:'result-green' },
+  RS:   { titel:'✅ Sekundarabschluss I – Realschulabschluss', sub:'Gut! Mit diesen Noten hättest du den Realschulabschluss.', farbe:'result-green' },
+  HS:   { titel:'🟡 Sekundarabschluss I – Hauptschulabschluss', sub:'Du hättest den Hauptschulabschluss. Schau dir die Tipps an, um mehr zu erreichen!', farbe:'result-yellow' },
+  kein: { titel:'❌ Kein Abschluss erreichbar', sub:'Mit diesen Noten wäre aktuell kein Abschluss möglich. Sieh dir die Tipps an!', farbe:'result-red' },
+};
+
+function zeigeErgebnis(abschluss, details, tipps) {
+  const t = ERGEBNIS_TEXTE[abschluss];
+  const rh = document.getElementById('result-header');
+  rh.className = 'result-header ' + t.farbe;
+  document.getElementById('result-titel').textContent = t.titel;
+  document.getElementById('result-sub').textContent   = t.sub;
+
+  const dl = document.getElementById('detail-list');
+  dl.innerHTML = '';
+  details.forEach(d => {
+    const li = document.createElement('li');
+    li.className = d.ok ? 'ok' : 'fail';
+    li.innerHTML = `<span class="icon">${d.ok ? '✅' : '❌'}</span><span>${d.text}</span>`;
+    dl.appendChild(li);
+  });
+
+  const tb = document.getElementById('tipp-box');
+  const tl = document.getElementById('tipp-list');
+  tl.innerHTML = '';
+  if (tipps.length > 0) {
+    tipps.forEach(t => { const li = document.createElement('li'); li.textContent = t; tl.appendChild(li); });
+    tb.style.display = 'block';
+  } else {
+    tb.style.display = 'none';
+  }
+
+  document.getElementById('step2').style.display  = 'none';
+  document.getElementById('ergebnis').style.display = 'block';
+  window.scrollTo({ top: document.getElementById('ergebnis').offsetTop - 20, behavior:'smooth' });
+}
+
+function zurueck() {
+  document.getElementById('step2').style.display = 'none';
+  document.getElementById('step1').style.display = 'block';
+}
+
+function neustarten() {
+  document.getElementById('ergebnis').style.display = 'none';
+  document.getElementById('step1').style.display = 'block';
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+/* ── START ── */
+buildFachAuswahl();
+</script>
+</body>
+</html>
