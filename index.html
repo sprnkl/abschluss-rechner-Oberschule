@@ -486,6 +486,27 @@ function hatAusgl(mangel, alle, maxNote, eJokerErlaubt) {
   });
 }
 
+/* Bipartites Matching: jedes Mangel-Fach braucht ein ANDERES Ausgleichsfach (Optimales Matching) */
+function findeDistinkteAusgleiche(maengel, alle, maxNote, joker) {
+  const cands = maengel.map(m =>
+    alle.filter(a => darf(m, a) && (a.note <= maxNote || (joker && a.kurs === 'E' && a.note === 4 && maxNote === 3)))
+  );
+  // Backtracking: findet immer das optimale Matching (max. 3 Mängel → schnell)
+  function go(mi, used) {
+    if (mi === maengel.length) return 0;
+    let best = go(mi + 1, used);
+    for (const a of cands[mi]) {
+      if (used.has(a.id)) continue;
+      used.add(a.id);
+      const r = 1 + go(mi + 1, used);
+      used.delete(a.id);
+      if (r > best) best = r;
+    }
+    return best;
+  }
+  return go(0, new Set());
+}
+
 function pruefeAusgleich(alle, maengel, typ) {
   const joker = (typ === 'HS' || typ === 'HSA');
   const fuenfen = maengel.filter(f => f.note === 5);
@@ -495,11 +516,12 @@ function pruefeAusgleich(alle, maengel, typ) {
   if (fuenfen.length === 1 && sechsen.length === 0) {
     return { ok:true, text:'1× Note 5 muss nicht ausgeglichen werden ✔' };
   }
-  // 2× Note 5 → je 1 Fach mit Note ≤ 3
+  // 2× Note 5 → je 1 VERSCHIEDENES Fach mit Note ≤ 3
   if (fuenfen.length === 2 && sechsen.length === 0) {
-    const ok = fuenfen.every(m => hatAusgl(m, alle, 3, joker));
+    const matched = findeDistinkteAusgleiche(fuenfen, alle, 3, joker);
+    const ok = matched >= 2;
     return { ok, text: ok ? '2× Note 5 → je 1 Ausgleichsfach mit Note ≤ 3 vorhanden ✔'
-                          : '2× Note 5 – nicht genug Ausgleichsfächer mit Note ≤ 3.' };
+                          : '2× Note 5 – nicht genug (verschiedene) Ausgleichsfächer mit Note ≤ 3.' };
   }
   // 1× Note 6 → 1 Fach Note ≤ 2 ODER 2 Fächer Note ≤ 3
   if (sechsen.length === 1 && fuenfen.length === 0) {
@@ -509,12 +531,12 @@ function pruefeAusgleich(alle, maengel, typ) {
     if (mit2 || passende3.length >= 2) return { ok:true, text: 'Note 6 ausgeglichen ✔' };
     return { ok:false, text: 'Note 6 in ' + s.name + ' – kein ausreichender Ausgleich möglich.' };
   }
-  // HS-Sonderregel: 3× Note 5 → 2 Ausgleichsfächer reichen (3. Note 5 bleibt frei)
+  // HS-Sonderregel: 3× Note 5 → 2 VERSCHIEDENE Ausgleichsfächer reichen
   if (joker && fuenfen.length === 3 && sechsen.length === 0) {
-    const ausglCount = fuenfen.filter(m => hatAusgl(m, alle, 3, true)).length;
-    return { ok: ausglCount >= 2,
-      text: ausglCount >= 2 ? '3× Note 5 → 2 Ausgleichsfächer reichen (HS-Sonderregel) ✔'
-                            : '3× Note 5 – weniger als 2 Ausgleichsfächer vorhanden.' };
+    const matched = findeDistinkteAusgleiche(fuenfen, alle, 3, true);
+    return { ok: matched >= 2,
+      text: matched >= 2 ? '3× Note 5 → 2 Ausgleichsfächer reichen (HS-Sonderregel) ✔'
+                         : '3× Note 5 – weniger als 2 verschiedene Ausgleichsfächer vorhanden.' };
   }
   // HS-Sonderregel: 1× Note 6 + 1× Note 5 → Note 6 ausgleichen, Note 5 bleibt frei
   if (joker && sechsen.length === 1 && fuenfen.length === 1) {
@@ -614,6 +636,17 @@ function pruefeERS(faecher) {
 
   const eKurse = faecher.filter(f => f.kurs === 'E');
 
+  // ── G-Kurse in Kernfächern (D, E, M) brauchen mind. Note 3 ──
+  const kernGKurse = faecher.filter(f => f.kurs === 'G' && f.kern);
+  const kernGMangel = kernGKurse.filter(f => f.note > 3);
+  if (kernGMangel.length > 0) {
+    ok = false;
+    kernGMangel.forEach(f => details.push({ ok:false,
+      text: f.name + ' (G-Kurs, Kernfach): Note ' + f.note + ' – für ERS mind. Note 3 nötig!' }));
+  } else if (kernGKurse.length > 0) {
+    details.push({ ok:true, text:'Kernfach-G-Kurse alle mit Note ≤ 3 ✔' });
+  }
+
   // ── mind. 3 E-Kurse Note ≤ 3 ──
   const eMit3 = eKurse.filter(f => f.note <= 3);
   if (eMit3.length < 3) ok = false;
@@ -653,13 +686,17 @@ function pruefeERS(faecher) {
       text: 'Durchschnitt Pflicht-/Wahlpflichtfächer' + bonus + ': ' + schnitt.toFixed(2) + (sOK?' ≤ 3,00 ✔':' – über 3,00, zu hoch!') });
   }
 
-  // ── max. 1× Note 5 gesamt ──
-  const maengel = faecher.filter(f => f.note >= 5);
-  if (maengel.length > 1) {
+  // ── max. 1× Note 5 gesamt, Note 6 nie erlaubt ──
+  const sechsen = faecher.filter(f => f.note === 6);
+  const fuenfen = faecher.filter(f => f.note === 5);
+  if (sechsen.length > 0) {
     ok = false;
-    details.push({ ok:false, text:maengel.length+'× Note 5 oder schlechter – für den Erweiterten Abschluss ist höchstens 1× erlaubt!' });
-  } else if (maengel.length === 1) {
-    details.push({ ok:true, text:'1× Note 5 ('+maengel[0].name+') – noch erlaubt ✔' });
+    sechsen.forEach(f => details.push({ ok:false, text:f.name+': Note 6 – für den Erweiterten Abschluss nicht erlaubt!' }));
+  } else if (fuenfen.length > 1) {
+    ok = false;
+    details.push({ ok:false, text:fuenfen.length+'× Note 5 – für den Erweiterten Abschluss ist höchstens 1× erlaubt!' });
+  } else if (fuenfen.length === 1) {
+    details.push({ ok:true, text:'1× Note 5 ('+fuenfen[0].name+') – noch erlaubt ✔' });
   } else {
     details.push({ ok:true, text:'Alle Fächer mindestens Note 4 ✔' });
   }
@@ -672,6 +709,10 @@ function pruefeHSA(faecher) {
   const details = [];
   const relevant = faecher.filter(f => !f.fs2);
   const maengel  = relevant.filter(f => f.note >= 5);
+  if (maengel.length === 0) {
+    details.push({ ok:true, text:'Alle Fächer mindestens Note 4 ✔' });
+    return { ok:true, details };
+  }
   if (maengel.length > 3) {
     details.push({ ok:false, text:maengel.length+'× unter Note 4 – auch der einfache Hauptschulabschluss ist nicht möglich (max. 3 erlaubt).' });
     return { ok:false, details };
